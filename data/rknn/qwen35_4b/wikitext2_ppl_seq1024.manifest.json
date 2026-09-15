@@ -1,0 +1,98 @@
+{
+  "configuration_sha256": "7bb614c9b19b22c732c08c63bcead281d3aafe5c2fda38c31e38c8bf44c24eca",
+  "model_bindings": [
+    {
+      "artifacts": {
+        "embed": {
+          "path": "${RKNN_MODEL_ROOT}/Qwen3.5-4B-Q2N-W4A16-G32/Qwen3.5-4B-Q2N-W4A16-G32.embed.bin",
+          "size_bytes": 1271398400
+        },
+        "rknn": {
+          "path": "${RKNN_MODEL_ROOT}/Qwen3.5-4B-Q2N-W4A16-G32/Qwen3.5-4B-Q2N-W4A16-G32.rknn",
+          "sha256": "0c09d1516854e33533cf6d580d9f0f00c2e2681c0a6a3d62d7da998926db107e",
+          "size_bytes": 35633280
+        },
+        "tokenizer_gguf": {
+          "path": "${RKNN_MODEL_ROOT}/Qwen3.5-4B-Q2N-W4A16-G32/Qwen3.5-4B-Q2N-W4A16-G32.tokenizer.gguf",
+          "sha256": "e79e8474b4bac238812b5050f067a5bdcc5290f5d49575154dba10ecafdc7e06",
+          "size_bytes": 10942284,
+          "tokenizer_fingerprint": {
+            "bos_token_id": null,
+            "eos_token_id": 248046,
+            "model": "gpt2",
+            "padding_token_id": 248044,
+            "pre": "qwen35",
+            "token_count": 248320,
+            "tokens_sha256": "b7f4906b5bf6a845baf3f41fdcdcd70f0f2f234eb702aabb830ce1536604e5d6"
+          }
+        },
+        "weight": {
+          "path": "${RKNN_MODEL_ROOT}/Qwen3.5-4B-Q2N-W4A16-G32/Qwen3.5-4B-Q2N-W4A16-G32.weight",
+          "size_bytes": 2647438336
+        }
+      },
+      "name": "Qwen3.5-4B-Q2N-W4A16-G32"
+    },
+    {
+      "artifacts": {
+        "embed": {
+          "path": "${RKNN_MODEL_ROOT}/Qwen3.5-4B-rknn-official/Qwen3.5-4B.embed.bin",
+          "size_bytes": 1271398400
+        },
+        "rknn": {
+          "path": "${RKNN_MODEL_ROOT}/Qwen3.5-4B-rknn-official/Qwen3.5-4B.rknn",
+          "sha256": "1ad1dc1ded9ad876b7e6ddbce02465dc776fd539e73fe5febacf3b96d8aedb1f",
+          "size_bytes": 35634424
+        },
+        "tokenizer_gguf": {
+          "path": "${RKNN_MODEL_ROOT}/Qwen3.5-4B-rknn-official/Qwen3.5-4B.tokenizer.gguf",
+          "sha256": "d1efb43984cad436adbee2f0f06019d33ce532b88d909f700a16e160826ab320",
+          "size_bytes": 10942308,
+          "tokenizer_fingerprint": {
+            "bos_token_id": null,
+            "eos_token_id": 248046,
+            "model": "gpt2",
+            "padding_token_id": 248044,
+            "pre": "qwen35",
+            "token_count": 248320,
+            "tokens_sha256": "b7f4906b5bf6a845baf3f41fdcdcd70f0f2f234eb702aabb830ce1536604e5d6"
+          }
+        },
+        "weight": {
+          "path": "${RKNN_MODEL_ROOT}/Qwen3.5-4B-rknn-official/Qwen3.5-4B.weight",
+          "size_bytes": 2647438336
+        }
+      },
+      "name": "Qwen3.5-4B-rknn-official"
+    }
+  ],
+  "output_path": "data/rknn/qwen35_4b/wikitext2_ppl_seq1024.jsonl",
+  "output_sha256": "7231aa89ae64fc14aed6e6ec6c2d296c3087078f951f63ceaa5194efff9626fa",
+  "record_count": 290,
+  "sampling": {
+    "shuffle": false
+  },
+  "schema_version": 1,
+  "source": {
+    "kind": "huggingface",
+    "name": "wikitext-2-raw-v1",
+    "path": "wikitext",
+    "split": "test"
+  },
+  "task": "wikitext2",
+  "tokenizer": {
+    "add_special_tokens": false,
+    "bos_token_id": null,
+    "class": "Qwen2TokenizerFast",
+    "drop_last": true,
+    "eos_token_id": 248046,
+    "full_vocab_size": 248077,
+    "path": "Qwen/Qwen3.5-4B",
+    "revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    "sequence_length": 1024,
+    "stride": 1023,
+    "token_count": 297053,
+    "vocab_size": 248044
+  },
+  "type": "perplexity"
+}

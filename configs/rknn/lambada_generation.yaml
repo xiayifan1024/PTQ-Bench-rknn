@@ -1,0 +1,19 @@
+task:
+  name: lambada
+  type: generation
+
+source:
+  kind: huggingface
+  path: EleutherAI/lambada_openai
+  split: test
+
+transform: lambada_last_word
+mapping:
+  text: text
+
+sampling:
+  shuffle: false
+
+output:
+  path: data/rknn/lambada_generation.jsonl
+  manifest_path: data/rknn/lambada_generation.manifest.json

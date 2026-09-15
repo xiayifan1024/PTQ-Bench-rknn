@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ptq-bench.local/schemas/rknn_eval_record.schema.json",
+  "title": "RKNN board evaluation record",
+  "type": "object",
+  "required": ["schema_version", "id", "task", "type"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "id": {"type": "string", "minLength": 1},
+    "task": {"type": "string", "minLength": 1},
+    "type": {
+      "enum": ["generation", "multiple_choice", "perplexity"]
+    },
+    "metadata": {"type": "object"}
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "type": {"const": "generation"},
+        "prompt": {"type": "string"},
+        "reference": {
+          "type": "object",
+          "required": ["text"],
+          "properties": {"text": {"type": "string"}}
+        }
+      },
+      "required": ["prompt", "reference"]
+    },
+    {
+      "properties": {
+        "type": {"const": "multiple_choice"},
+        "prompt": {"type": "string"},
+        "choices": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"type": "string"}
+        },
+        "choice_labels": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"type": "string"}
+        },
+        "reference": {
+          "type": "object",
+          "required": ["answer_index", "answer_label"],
+          "properties": {
+            "answer_index": {"type": "integer", "minimum": 0},
+            "answer_label": {"type": "string"}
+          }
+        }
+      },
+      "required": ["prompt", "choices", "choice_labels", "reference"]
+    },
+    {
+      "properties": {
+        "type": {"const": "perplexity"},
+        "tokens": {
+          "type": "array",
+          "minItems": 2,
+          "items": {"type": "integer", "minimum": 0}
+        },
+        "score_from": {"type": "integer", "minimum": 1}
+      },
+      "required": ["tokens", "score_from"]
+    }
+  ]
+}

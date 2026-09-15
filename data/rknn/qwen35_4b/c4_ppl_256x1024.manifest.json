@@ -1,0 +1,102 @@
+{
+  "configuration_sha256": "498fb786b1148e0bede48bc0dfcb02c75606d2c456e0d1f0f7a02dcda8a3d781",
+  "model_bindings": [
+    {
+      "artifacts": {
+        "embed": {
+          "path": "${RKNN_MODEL_ROOT}/Qwen3.5-4B-Q2N-W4A16-G32/Qwen3.5-4B-Q2N-W4A16-G32.embed.bin",
+          "size_bytes": 1271398400
+        },
+        "rknn": {
+          "path": "${RKNN_MODEL_ROOT}/Qwen3.5-4B-Q2N-W4A16-G32/Qwen3.5-4B-Q2N-W4A16-G32.rknn",
+          "sha256": "0c09d1516854e33533cf6d580d9f0f00c2e2681c0a6a3d62d7da998926db107e",
+          "size_bytes": 35633280
+        },
+        "tokenizer_gguf": {
+          "path": "${RKNN_MODEL_ROOT}/Qwen3.5-4B-Q2N-W4A16-G32/Qwen3.5-4B-Q2N-W4A16-G32.tokenizer.gguf",
+          "sha256": "e79e8474b4bac238812b5050f067a5bdcc5290f5d49575154dba10ecafdc7e06",
+          "size_bytes": 10942284,
+          "tokenizer_fingerprint": {
+            "bos_token_id": null,
+            "eos_token_id": 248046,
+            "model": "gpt2",
+            "padding_token_id": 248044,
+            "pre": "qwen35",
+            "token_count": 248320,
+            "tokens_sha256": "b7f4906b5bf6a845baf3f41fdcdcd70f0f2f234eb702aabb830ce1536604e5d6"
+          }
+        },
+        "weight": {
+          "path": "${RKNN_MODEL_ROOT}/Qwen3.5-4B-Q2N-W4A16-G32/Qwen3.5-4B-Q2N-W4A16-G32.weight",
+          "size_bytes": 2647438336
+        }
+      },
+      "name": "Qwen3.5-4B-Q2N-W4A16-G32"
+    },
+    {
+      "artifacts": {
+        "embed": {
+          "path": "${RKNN_MODEL_ROOT}/Qwen3.5-4B-rknn-official/Qwen3.5-4B.embed.bin",
+          "size_bytes": 1271398400
+        },
+        "rknn": {
+          "path": "${RKNN_MODEL_ROOT}/Qwen3.5-4B-rknn-official/Qwen3.5-4B.rknn",
+          "sha256": "1ad1dc1ded9ad876b7e6ddbce02465dc776fd539e73fe5febacf3b96d8aedb1f",
+          "size_bytes": 35634424
+        },
+        "tokenizer_gguf": {
+          "path": "${RKNN_MODEL_ROOT}/Qwen3.5-4B-rknn-official/Qwen3.5-4B.tokenizer.gguf",
+          "sha256": "d1efb43984cad436adbee2f0f06019d33ce532b88d909f700a16e160826ab320",
+          "size_bytes": 10942308,
+          "tokenizer_fingerprint": {
+            "bos_token_id": null,
+            "eos_token_id": 248046,
+            "model": "gpt2",
+            "padding_token_id": 248044,
+            "pre": "qwen35",
+            "token_count": 248320,
+            "tokens_sha256": "b7f4906b5bf6a845baf3f41fdcdcd70f0f2f234eb702aabb830ce1536604e5d6"
+          }
+        },
+        "weight": {
+          "path": "${RKNN_MODEL_ROOT}/Qwen3.5-4B-rknn-official/Qwen3.5-4B.weight",
+          "size_bytes": 2647438336
+        }
+      },
+      "name": "Qwen3.5-4B-rknn-official"
+    }
+  ],
+  "output_path": "data/rknn/qwen35_4b/c4_ppl_256x1024.jsonl",
+  "output_sha256": "f99920160939b99da3b634ed6a01bb5a622ea25944c98c8b393c86b8b3679a71",
+  "record_count": 256,
+  "sampling": {
+    "limit": 256,
+    "seed": 0
+  },
+  "schema_version": 1,
+  "source": {
+    "kind": "huggingface",
+    "name": "en",
+    "path": "allenai/c4",
+    "shuffle_buffer_size": 10000,
+    "shuffle_seed": 0,
+    "split": "validation",
+    "streaming": true
+  },
+  "task": "c4",
+  "tokenizer": {
+    "add_special_tokens": false,
+    "bos_token_id": null,
+    "class": "Qwen2TokenizerFast",
+    "eos_token_id": 248046,
+    "full_vocab_size": 248077,
+    "mode": "document_windows",
+    "path": "Qwen/Qwen3.5-4B",
+    "revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    "sample_count": 256,
+    "scanned_source_rows": 2605,
+    "sequence_length": 1024,
+    "vocab_size": 248044
+  },
+  "type": "perplexity"
+}

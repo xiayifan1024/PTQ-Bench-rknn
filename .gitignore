@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+.cache/
+results/
+
+# Local vendor documentation used as implementation reference.
+rknn_doc/*.pdf

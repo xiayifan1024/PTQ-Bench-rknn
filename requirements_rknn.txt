@@ -1,0 +1,13 @@
+# Dataset
+datasets>=3.0,<4
+
+# Tokenization
+transformers>=4.57,<5
+tokenizers>=0.21
+sentencepiece>=0.2
+safetensors>=0.4
+
+# Utilities
+numpy>=1.26,<3
+tqdm>=4.66
+PyYAML>=6.0,<7

@@ -1,0 +1,51 @@
+# Copy this file and select one task type. Paths are resolved from the current
+# working directory so using absolute paths is recommended in automated runs.
+
+task:
+  name: demo_generation
+  type: generation  # generation | multiple_choice | perplexity
+
+source:
+  kind: local       # local | huggingface
+  path: /absolute/path/to/source.jsonl
+  format: jsonl     # auto | jsonl | json | csv
+
+mapping:
+  id: id
+  prompt: prompt
+  target: answer
+  metadata_fields: [category]
+
+sampling:
+  shuffle: false
+  seed: 0
+  limit: 100
+
+output:
+  path: data/rknn/demo_generation.jsonl
+  manifest_path: data/rknn/demo_generation.manifest.json
+
+# For multiple_choice, replace mapping with, for example:
+# mapping:
+#   id: id
+#   prompt_template: "{question}\n请选择正确答案。"
+#   choice_fields: [A, B, C, D]
+#   choice_labels: [A, B, C, D]
+#   answer: answer
+#   metadata_fields: [subject]
+
+# For perplexity, source rows need a text field. Replace task/mapping and add:
+# task:
+#   name: wikitext2
+#   type: perplexity
+# mapping:
+#   text: text
+# tokenizer:
+#   path: /absolute/path/to/the/original/hf/tokenizer
+#   use_fast: true
+#   trust_remote_code: false
+#   add_special_tokens: false
+# sequence_length: 1024
+# stride: 1023  # overlap one token so chunk boundaries are still scored
+# drop_last: true
+# separator: "\n\n"

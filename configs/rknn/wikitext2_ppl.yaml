@@ -1,0 +1,32 @@
+task:
+  name: wikitext2
+  type: perplexity
+
+source:
+  kind: huggingface
+  path: wikitext
+  name: wikitext-2-raw-v1
+  split: test
+
+mapping:
+  text: text
+
+tokenizer:
+  # Must be the tokenizer used to produce the RKNN tokenizer.gguf.
+  path: /absolute/path/to/hf-model-or-tokenizer
+  use_fast: true
+  trust_remote_code: true
+  add_special_tokens: false
+
+separator: "\n\n"
+drop_empty: true
+sequence_length: 1024
+stride: 1023  # overlap one token so chunk boundaries are still scored
+drop_last: true
+
+sampling:
+  shuffle: false
+
+output:
+  path: data/rknn/wikitext2_ppl.jsonl
+  manifest_path: data/rknn/wikitext2_ppl.manifest.json

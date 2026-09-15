@@ -1,0 +1,50 @@
+task:
+  name: c4
+  type: perplexity
+
+source:
+  kind: huggingface
+  path: allenai/c4
+  name: en
+  split: validation
+  cache_dir: /tmp/rknn_eval_datasets
+  streaming: true
+  shuffle_seed: 0
+  shuffle_buffer_size: 10000
+
+mapping:
+  text: text
+
+tokenizer:
+  path: Qwen/Qwen3.5-4B
+  revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+  cache_dir: /tmp/rknn_eval_hf
+  local_files_only: true
+  use_fast: true
+  trust_remote_code: true
+  add_special_tokens: false
+
+perplexity_mode: document_windows
+drop_empty: true
+sequence_length: 1024
+max_source_rows: 10000
+
+sampling:
+  limit: 256
+  seed: 0
+
+model_bindings:
+  - name: Qwen3.5-4B-Q2N-W4A16-G32
+    rknn: ${RKNN_MODEL_ROOT}/Qwen3.5-4B-Q2N-W4A16-G32/Qwen3.5-4B-Q2N-W4A16-G32.rknn
+    weight: ${RKNN_MODEL_ROOT}/Qwen3.5-4B-Q2N-W4A16-G32/Qwen3.5-4B-Q2N-W4A16-G32.weight
+    tokenizer_gguf: ${RKNN_MODEL_ROOT}/Qwen3.5-4B-Q2N-W4A16-G32/Qwen3.5-4B-Q2N-W4A16-G32.tokenizer.gguf
+    embed: ${RKNN_MODEL_ROOT}/Qwen3.5-4B-Q2N-W4A16-G32/Qwen3.5-4B-Q2N-W4A16-G32.embed.bin
+  - name: Qwen3.5-4B-rknn-official
+    rknn: ${RKNN_MODEL_ROOT}/Qwen3.5-4B-rknn-official/Qwen3.5-4B.rknn
+    weight: ${RKNN_MODEL_ROOT}/Qwen3.5-4B-rknn-official/Qwen3.5-4B.weight
+    tokenizer_gguf: ${RKNN_MODEL_ROOT}/Qwen3.5-4B-rknn-official/Qwen3.5-4B.tokenizer.gguf
+    embed: ${RKNN_MODEL_ROOT}/Qwen3.5-4B-rknn-official/Qwen3.5-4B.embed.bin
+
+output:
+  path: data/rknn/qwen35_4b/c4_ppl_256x1024.jsonl
+  manifest_path: data/rknn/qwen35_4b/c4_ppl_256x1024.manifest.json
