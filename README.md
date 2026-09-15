@@ -172,6 +172,10 @@ C4 使用 streaming 模式，不需要完整下载数据集。两份模型的 GG
 python -m unittest tests/test_rknn_data_prepare.py -v
 ```
 
+## Contributors
+
+- OpenAI Codex — RKNN3 板端评估方案、数据准备管线、数据校验与文档。
+
 ## Related Projects
 
 - [GPTQ: Accurate Post-Training Quantization for Generative Pre-trained Transformers](https://github.com/IST-DASLab/gptq)
