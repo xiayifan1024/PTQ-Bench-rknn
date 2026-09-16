@@ -348,8 +348,8 @@ def _prepare_perplexity(
     drop_last = bool(config.get("drop_last", True))
     if sequence_length < 2:
         raise DataPreparationError("sequence_length must be at least 2")
-    if not 1 <= stride < sequence_length:
-        raise DataPreparationError("stride must be in [1, sequence_length)")
+    if not 1 <= stride <= sequence_length:
+        raise DataPreparationError("stride must be in [1, sequence_length]")
 
     records: list[dict[str, Any]] = []
     start = 0
@@ -359,7 +359,9 @@ def _prepare_perplexity(
             break
         if len(window) < 2:
             break
-        score_from = 1 if start == 0 else sequence_length - stride
+        score_from = (
+            1 if start == 0 or stride == sequence_length else sequence_length - stride
+        )
         records.append(
             {
                 "schema_version": SCHEMA_VERSION,

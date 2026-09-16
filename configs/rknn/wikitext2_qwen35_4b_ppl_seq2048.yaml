@@ -1,0 +1,38 @@
+task:
+  name: wikitext2
+  type: perplexity
+
+source:
+  kind: huggingface
+  path: wikitext
+  name: wikitext-2-raw-v1
+  split: test
+  cache_dir: /tmp/rknn_eval_datasets
+
+mapping:
+  text: text
+
+tokenizer:
+  path: Qwen/Qwen3.5-4B
+  revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+  cache_dir: /tmp/rknn_eval_hf
+  local_files_only: false
+  use_fast: true
+  trust_remote_code: true
+  add_special_tokens: false
+
+# Match eval_ppl.py exactly: join every test row with two newlines, then use
+# non-overlapping 2048-token blocks and ignore the incomplete tail.
+perplexity_mode: concatenate
+separator: "\n\n"
+drop_empty: false
+sequence_length: 2048
+stride: 2048
+drop_last: true
+
+sampling:
+  shuffle: false
+
+output:
+  path: data/rknn/qwen35_4b/wikitext2_ppl_seq2048.jsonl
+  manifest_path: data/rknn/qwen35_4b/wikitext2_ppl_seq2048.manifest.json

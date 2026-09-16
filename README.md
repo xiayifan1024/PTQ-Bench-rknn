@@ -142,7 +142,7 @@ PPL 使用的 Hugging Face tokenizer 必须与 RKNN `tokenizer.gguf` 同源。
 
 ```bash
 python prepare_rknn_data.py prepare \
-  --config configs/rknn/wikitext2_qwen35_4b_ppl.yaml
+  --config configs/rknn/wikitext2_qwen35_4b_ppl_seq2048.yaml
 python prepare_rknn_data.py prepare \
   --config configs/rknn/c4_qwen35_4b_ppl.yaml
 ```
@@ -151,7 +151,7 @@ python prepare_rknn_data.py prepare \
 
 ```bash
 python prepare_rknn_data.py validate \
-  --input data/rknn/qwen35_4b/wikitext2_ppl_seq1024.jsonl
+  --input data/rknn/qwen35_4b/wikitext2_ppl_seq2048.jsonl
 python prepare_rknn_data.py validate \
   --input data/rknn/qwen35_4b/c4_ppl_256x1024.jsonl
 ```
@@ -160,7 +160,7 @@ python prepare_rknn_data.py validate \
 
 | 数据集 | 处理方式 | 记录数 | 计分 token 数 |
 | --- | --- | ---: | ---: |
-| WikiText-2 test | 全文拼接，窗口 1024，步长 1023 | 290 | 296,670 |
+| WikiText-2 test | 对齐 `eval_ppl.py`，145 个不重叠 2048-token 块 | 145 | 296,815 |
 | C4 validation | 流式随机文档窗口，seed 0 | 256 | 261,888 |
 
 C4 使用 streaming 模式，不需要完整下载数据集。两份模型的 GGUF token 数组
@@ -199,7 +199,7 @@ build/rknn_llm_ppl_eval_rk3588_aarch64/install/rknn_llm_ppl_eval
 adb shell mkdir -p /userdata/ptq-bench-rknn/data /userdata/ptq-bench-rknn/results
 adb push build/rknn_llm_ppl_eval_rk3588_aarch64/install/rknn_llm_ppl_eval \
   /userdata/ptq-bench-rknn/rknn_llm_ppl_eval
-adb push data/rknn/qwen35_4b/wikitext2_ppl_seq1024.jsonl \
+adb push data/rknn/qwen35_4b/wikitext2_ppl_seq2048.jsonl \
   /userdata/ptq-bench-rknn/data/
 adb push data/rknn/qwen35_4b/c4_ppl_256x1024.jsonl \
   /userdata/ptq-bench-rknn/data/
@@ -218,10 +218,10 @@ adb shell /userdata/ptq-bench-rknn/rknn_llm_ppl_eval \
   --weight /userdata/llm_demo/rknn_Qwen3_5_demo/model_4b/Qwen3.5-4B.weight \
   --tokenizer /userdata/llm_demo/rknn_Qwen3_5_demo/model_4b/Qwen3.5-4B.tokenizer.gguf \
   --embedding /userdata/llm_demo/rknn_Qwen3_5_demo/model_4b/Qwen3.5-4B.embed.bin \
-  --data /userdata/ptq-bench-rknn/data/wikitext2_ppl_seq1024.jsonl \
+  --data /userdata/ptq-bench-rknn/data/wikitext2_ppl_seq2048.jsonl \
   --output /userdata/ptq-bench-rknn/results/official_wikitext2.jsonl \
   --model-name Qwen3.5-4B-rknn-official \
-  --logits-name logits --core-mask 0xff --max-context-len 1024 \
+  --logits-name logits --core-mask 0xff --max-context-len 4096 \
   --scoring-threads 4 --perf-prefill-tokens 512 --perf-decode-tokens 128 \
   --limit 1 --no-resume
 ```
@@ -237,9 +237,9 @@ C4 使用相同命令，仅替换 `--data` 和 `--output`。
 adb shell /userdata/ptq-bench-rknn/rknn_llm_ppl_eval \
   --model MODEL.rknn --weight MODEL.weight \
   --tokenizer MODEL.tokenizer.gguf --embedding MODEL.embed.bin \
-  --data /userdata/ptq-bench-rknn/data/wikitext2_ppl_seq1024.jsonl \
+  --data /userdata/ptq-bench-rknn/data/wikitext2_ppl_seq2048.jsonl \
   --output /userdata/ptq-bench-rknn/results/MODEL_perf.jsonl \
-  --model-name MODEL --core-mask 0xff --max-context-len 1024 \
+  --model-name MODEL --core-mask 0xff --max-context-len 4096 \
   --perf-prefill-tokens 512 --perf-decode-tokens 128 \
   --perf-warmup 3 --perf-repeat 10 --limit 0 --no-resume
 ```

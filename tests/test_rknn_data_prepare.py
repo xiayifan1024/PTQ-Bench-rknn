@@ -171,6 +171,31 @@ class PrepareDatasetTest(unittest.TestCase):
                 )
             self.assertEqual(scored_global_indices, list(range(1, 9)))
 
+    def test_perplexity_non_overlapping_blocks_match_eval_ppl(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            source = root / "source.jsonl"
+            source.write_text(json.dumps({"text": "abcdefghijklmn"}) + "\n", encoding="utf-8")
+            output = root / "prepared.jsonl"
+            config = {
+                "task": {"name": "ppl", "type": "perplexity"},
+                "source": {"kind": "local", "path": str(source)},
+                "mapping": {"text": "text"},
+                "tokenizer": {"path": "unused", "add_special_tokens": False},
+                "sequence_length": 6,
+                "stride": 6,
+                "drop_last": True,
+                "output": {"path": str(output)},
+            }
+
+            manifest = prepare_dataset(config, tokenizer=FakeTokenizer())
+            records = [json.loads(line) for line in output.read_text().splitlines()]
+
+            self.assertEqual(manifest["tokenizer"]["token_count"], 14)
+            self.assertEqual([record["metadata"]["token_start"] for record in records], [0, 6])
+            self.assertEqual([record["score_from"] for record in records], [1, 1])
+            self.assertEqual(sum(len(record["tokens"]) - 1 for record in records), 10)
+
     def test_document_windows_are_deterministic(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             root = Path(temp_dir)

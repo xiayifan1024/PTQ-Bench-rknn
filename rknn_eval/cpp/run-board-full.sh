@@ -9,6 +9,7 @@ PID_FILE=/userdata/ptq-bench-rknn/full_eval.pid
 PERF_PREFILL_LENGTHS=${PERF_PREFILL_LENGTHS:-"128 512 1024"}
 RUN_WIKITEXT=${RUN_WIKITEXT:-1}
 RUN_C4=${RUN_C4:-1}
+WIKITEXT_DATASET=${WIKITEXT_DATASET:-wikitext2_ppl_seq2048}
 
 OFFICIAL_ROOT=/userdata/llm_demo/rknn_Qwen3_5_demo/model_4b
 Q2N_ROOT=/userdata/llm_demo/rknn_Qwen3_5_demo/model_4b_q2n_w4a16_g32
@@ -45,7 +46,7 @@ run_perf() {
     --weight "${model_root}/${model_stem}.weight" \
     --tokenizer "${model_root}/${model_stem}.tokenizer.gguf" \
     --embedding "${model_root}/${model_stem}.embed.bin" \
-    --data "${DATA_ROOT}/wikitext2_ppl_seq1024.jsonl" \
+    --data "${DATA_ROOT}/${WIKITEXT_DATASET}.jsonl" \
     --output "${output}" \
     --model-name "${model_name}" \
     --logits-name logits --core-mask 0xff --max-context-len 4096 \
@@ -82,8 +83,8 @@ for prefill in ${PERF_PREFILL_LENGTHS}; do
 done
 
 if [ "${RUN_WIKITEXT}" = 1 ]; then
-  run_ppl Qwen3.5-4B-rknn-official "${OFFICIAL_ROOT}" Qwen3.5-4B wikitext2_ppl_seq1024
-  run_ppl Qwen3.5-4B-Q2N-W4A16-G32 "${Q2N_ROOT}" Qwen3.5-4B-Q2N-W4A16-G32 wikitext2_ppl_seq1024
+  run_ppl Qwen3.5-4B-rknn-official "${OFFICIAL_ROOT}" Qwen3.5-4B "${WIKITEXT_DATASET}"
+  run_ppl Qwen3.5-4B-Q2N-W4A16-G32 "${Q2N_ROOT}" Qwen3.5-4B-Q2N-W4A16-G32 "${WIKITEXT_DATASET}"
 fi
 
 if [ "${RUN_C4}" = 1 ]; then

@@ -1,0 +1,32 @@
+{
+  "configuration_sha256": "e8f46c200b4ebf4c755b8cf33cbbf3db7055731bd9248ea40d201d69a74566f8",
+  "output_path": "data/rknn/qwen35_4b/wikitext2_ppl_seq2048.jsonl",
+  "output_sha256": "b891ba252023564bb65626775aab79b0917d8a4085cb2fa2aad36f62887e50d4",
+  "record_count": 145,
+  "sampling": {
+    "shuffle": false
+  },
+  "schema_version": 1,
+  "source": {
+    "kind": "huggingface",
+    "name": "wikitext-2-raw-v1",
+    "path": "wikitext",
+    "split": "test"
+  },
+  "task": "wikitext2",
+  "tokenizer": {
+    "add_special_tokens": false,
+    "bos_token_id": null,
+    "class": "Qwen2TokenizerFast",
+    "drop_last": true,
+    "eos_token_id": 248046,
+    "full_vocab_size": 248077,
+    "path": "Qwen/Qwen3.5-4B",
+    "revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    "sequence_length": 2048,
+    "stride": 2048,
+    "token_count": 297193,
+    "vocab_size": 248044
+  },
+  "type": "perplexity"
+}
