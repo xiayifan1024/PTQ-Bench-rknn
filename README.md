@@ -248,6 +248,19 @@ adb shell /userdata/ptq-bench-rknn/rknn_llm_ppl_eval \
 `null`。比较不同模型时应保持输入 token、核心掩码、Prefill/Decode 长度、预热和
 重复次数完全一致，并在同一温控/频率条件下运行。
 
+仓库提供完整串行队列 `rknn_eval/cpp/run-board-full.sh`，依次执行两个模型的
+128/512/1024 Prefill 性能测试、WikiText-2 全量 PPL 和 C4 固定 256 窗口 PPL：
+
+```bash
+adb push rknn_eval/cpp/run-board-full.sh /userdata/ptq-bench-rknn/
+adb shell chmod +x /userdata/ptq-bench-rknn/run-board-full.sh
+adb shell 'cd /userdata/ptq-bench-rknn; \
+  nohup setsid ./run-board-full.sh > logs/full_eval.log 2>&1 </dev/null &'
+```
+
+运行状态写入 `results/full_eval.status`，日志写入 `logs/full_eval.log`。PPL 输出支持
+断点续跑；已有非空性能 summary 会被跳过，如需重测应先移走对应性能结果。
+
 每条结果符合
 [`schemas/rknn_eval_result.schema.json`](schemas/rknn_eval_result.schema.json)，最终还会生成
 `<output>.summary.json`。指标口径如下：

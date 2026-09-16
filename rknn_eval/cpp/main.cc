@@ -581,17 +581,24 @@ json run_performance_probe(Runtime* runtime, const Options& options) {
   }
   std::ifstream data(options.data);
   std::string line;
+  const size_t required = static_cast<size_t>(options.perf_prefill_tokens) +
+                          static_cast<size_t>(options.perf_decode_tokens);
+  std::vector<int32_t> probe_tokens;
+  std::vector<std::string> source_record_ids;
+  probe_tokens.reserve(required);
   while (std::getline(data, line)) {
     if (line.empty()) continue;
     const json record = json::parse(line);
     const std::vector<int32_t> tokens = record.at("tokens").get<std::vector<int32_t>>();
-    const size_t required = static_cast<size_t>(options.perf_prefill_tokens) +
-                            static_cast<size_t>(options.perf_decode_tokens);
-    if (tokens.size() < required) continue;
-    std::vector<int32_t> prefix(tokens.begin(),
-                                tokens.begin() + options.perf_prefill_tokens);
-    std::vector<int32_t> targets(tokens.begin() + options.perf_prefill_tokens,
-                                 tokens.begin() + required);
+    source_record_ids.push_back(record.at("id").get<std::string>());
+    const size_t remaining = required - probe_tokens.size();
+    const size_t take = std::min(remaining, tokens.size());
+    probe_tokens.insert(probe_tokens.end(), tokens.begin(), tokens.begin() + take);
+    if (probe_tokens.size() < required) continue;
+    std::vector<int32_t> prefix(probe_tokens.begin(),
+                                probe_tokens.begin() + options.perf_prefill_tokens);
+    std::vector<int32_t> targets(probe_tokens.begin() + options.perf_prefill_tokens,
+                                 probe_tokens.end());
     for (int i = 0; i < options.perf_warmup; ++i) {
       score_tokens(runtime, prefix, targets);
     }
@@ -600,7 +607,7 @@ json run_performance_probe(Runtime* runtime, const Options& options) {
       samples.push_back(score_tokens(runtime, prefix, targets));
     }
     return {{"enabled", true},
-            {"source_record_id", record.at("id")},
+            {"source_record_ids", source_record_ids},
             {"requested_prefill_tokens", options.perf_prefill_tokens},
             {"requested_decode_tokens", options.perf_decode_tokens},
             {"warmup", options.perf_warmup},
@@ -608,7 +615,7 @@ json run_performance_probe(Runtime* runtime, const Options& options) {
             {"samples", samples},
             {"percentiles", summarize_performance_samples(samples)}};
   }
-  throw std::runtime_error("no record is long enough for the performance probe");
+  throw std::runtime_error("dataset does not contain enough tokens for the performance probe");
 }
 
 std::set<std::string> load_existing(const Options& options, double* nll, uint64_t* tokens) {
