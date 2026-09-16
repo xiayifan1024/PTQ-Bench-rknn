@@ -6,6 +6,9 @@ DATA_ROOT=/userdata/ptq-bench-rknn/data
 RESULT_ROOT=/userdata/ptq-bench-rknn/results
 STATUS_FILE=${RESULT_ROOT}/full_eval.status
 PID_FILE=/userdata/ptq-bench-rknn/full_eval.pid
+PERF_PREFILL_LENGTHS=${PERF_PREFILL_LENGTHS:-"128 512 1024"}
+RUN_WIKITEXT=${RUN_WIKITEXT:-1}
+RUN_C4=${RUN_C4:-1}
 
 OFFICIAL_ROOT=/userdata/llm_demo/rknn_Qwen3_5_demo/model_4b
 Q2N_ROOT=/userdata/llm_demo/rknn_Qwen3_5_demo/model_4b_q2n_w4a16_g32
@@ -70,15 +73,20 @@ run_ppl() {
     --scoring-threads 4 --perf-prefill-tokens 0 --perf-decode-tokens 0
 }
 
-for prefill in 128 512 1024; do
+for prefill in ${PERF_PREFILL_LENGTHS}; do
   run_perf Qwen3.5-4B-rknn-official "${OFFICIAL_ROOT}" Qwen3.5-4B "${prefill}"
 done
 
-for prefill in 128 512 1024; do
+for prefill in ${PERF_PREFILL_LENGTHS}; do
   run_perf Qwen3.5-4B-Q2N-W4A16-G32 "${Q2N_ROOT}" Qwen3.5-4B-Q2N-W4A16-G32 "${prefill}"
 done
 
-run_ppl Qwen3.5-4B-rknn-official "${OFFICIAL_ROOT}" Qwen3.5-4B wikitext2_ppl_seq1024
-run_ppl Qwen3.5-4B-Q2N-W4A16-G32 "${Q2N_ROOT}" Qwen3.5-4B-Q2N-W4A16-G32 wikitext2_ppl_seq1024
-run_ppl Qwen3.5-4B-rknn-official "${OFFICIAL_ROOT}" Qwen3.5-4B c4_ppl_256x1024
-run_ppl Qwen3.5-4B-Q2N-W4A16-G32 "${Q2N_ROOT}" Qwen3.5-4B-Q2N-W4A16-G32 c4_ppl_256x1024
+if [ "${RUN_WIKITEXT}" = 1 ]; then
+  run_ppl Qwen3.5-4B-rknn-official "${OFFICIAL_ROOT}" Qwen3.5-4B wikitext2_ppl_seq1024
+  run_ppl Qwen3.5-4B-Q2N-W4A16-G32 "${Q2N_ROOT}" Qwen3.5-4B-Q2N-W4A16-G32 wikitext2_ppl_seq1024
+fi
+
+if [ "${RUN_C4}" = 1 ]; then
+  run_ppl Qwen3.5-4B-rknn-official "${OFFICIAL_ROOT}" Qwen3.5-4B c4_ppl_256x1024
+  run_ppl Qwen3.5-4B-Q2N-W4A16-G32 "${Q2N_ROOT}" Qwen3.5-4B-Q2N-W4A16-G32 c4_ppl_256x1024
+fi

@@ -261,6 +261,17 @@ adb shell 'cd /userdata/ptq-bench-rknn; \
 运行状态写入 `results/full_eval.status`，日志写入 `logs/full_eval.log`。PPL 输出支持
 断点续跑；已有非空性能 summary 会被跳过，如需重测应先移走对应性能结果。
 
+只评估 WikiText-2 和 1024-token Prefill 时：
+
+```bash
+adb shell 'cd /userdata/ptq-bench-rknn; \
+  export PERF_PREFILL_LENGTHS=1024 RUN_C4=0; \
+  nohup setsid ./run-board-full.sh > logs/full_eval.log 2>&1 </dev/null &'
+```
+
+`PERF_PREFILL_LENGTHS` 控制性能档位，`RUN_WIKITEXT` 和 `RUN_C4` 控制数据集；值为
+`1` 时启用。已有 PPL JSONL 会按记录 ID 继续运行。
+
 每条结果符合
 [`schemas/rknn_eval_result.schema.json`](schemas/rknn_eval_result.schema.json)，最终还会生成
 `<output>.summary.json`。指标口径如下：
