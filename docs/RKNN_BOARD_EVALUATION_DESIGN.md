@@ -26,116 +26,100 @@
 
 ## 2. 设计结论
 
-板端评估采用“Host 调度 + Board Agent 执行”的两层结构：
+当前版本采用“Host 数据准备 + Board C++ Runtime 执行”的两层结构：
 
 ```text
-Host
-  数据集/任务适配 -> 任务分片 -> SSH/HTTP/JSONL -> 汇总指标 -> result.json/report.md
-                                      |
-Board                                 v
-  Board Agent -> RKNN3 Toolkit Lite Session -> RKNN3 Runtime -> NPU
-                    |                         |
-                    |                         +-> profile_ops/profile_mem
-                    +-> tokenizer/embed/callback/session timing
+Host (rknn_quant_bench_env)
+  datasets/tokenizer -> 预分词 JSONL + manifest -> ADB 部署
+                                                   |
+Board (RK3588 + RK1828)                            v
+  C++ runner -> Tokenizer/Embedding -> RKNN3 Runtime Session -> RK1828
+      |                 |                   |
+      |                 |                   +-> teacher forcing / timing
+      |                 +-> GGUF 词表一致性校验
+      +-> JSONL 结果、summary、内存与上下文查询
 ```
 
 选择这个结构的原因：
 
-- 数据集、`lm-evaluation-harness` 和报告留在 Host，避免占用板端磁盘与 Python 环境；
-- 模型、Tokenizer、Embedding、KVCache 和 Runtime Session 常驻板端，避免每条样本重复加载；
-- 功能和精度评测优先使用 Toolkit Lite，开发成本低且具备 LLM Session/Callback/KVCache；
-- 最终性能和内存以 Runtime C API 采集为准，避免把 Python/HTTP 开销误算成 NPU 推理耗时。
+- 数据集下载、tokenizer 和窗口切分留在 Host，板端不依赖 `datasets`；
+- 模型、Tokenizer、Embedding、KVCache 和 Runtime Session 在一次评估中常驻板端；
+- C++ runner 直接使用 Runtime sampling callback，精确计算 teacher-forcing PPL；
+- TTFT、吞吐、RK1828 allocation、RK3588 RSS 和上下文都从同一执行进程采集；
+- Python Toolkit Lite runner 保留为原型与交叉验证工具，不作为正式性能口径。
 
-不建议把 `rkllm3-server` 作为唯一评估后端。它适合生成质量和 OpenAI API 兼容测试，但协议通常不能提供完整 logits、算子 profile 和准确的 NPU 内存明细。可以把它作为可选的 `server` 后端，主后端仍为 `lite`/`runtime`。
+不把 `rkllm3-server` 作为正式 PPL/性能后端。它适合生成质量和 API 兼容测试，
+但协议不能提供本方案需要的逐 token logits、Runtime Session 状态和设备内存明细。
 
 ## 3. 与当前工程的衔接
 
 当前工程的 `run_quant.py` 和各方法 `register.py` 继续只负责量化，不修改其行为。板端评估新增独立入口，避免量化环境和 RKNN 板端环境相互污染。
 
-建议目录：
+当前落地目录：
 
 ```text
 PTQ-Bench-rknn/
-├── run_rknn_eval.py                 # Host 统一入口
+├── prepare_rknn_data.py             # Host 数据准备/校验入口
+├── eval_rknn_board.py               # Toolkit Lite Python 验证入口
 ├── configs/rknn/
-│   └── qwen2_5_0_5b_rk1820.yaml
+│   ├── wikitext2_qwen35_4b_ppl.yaml
+│   └── c4_qwen35_4b_ppl.yaml
 ├── rknn_eval/
-│   ├── config.py                    # 配置解析、语义校验
-│   ├── artifacts.py                 # 文件清单、哈希和部署
-│   ├── transport/
-│   │   ├── local.py                 # 直接在板端运行
-│   │   └── ssh.py                   # Host 远程调度
-│   ├── client.py                    # JSONL/HTTP 客户端
-│   ├── evaluators/
-│   │   ├── smoke.py
-│   │   ├── generation.py
-│   │   ├── multiple_choice.py
-│   │   ├── perplexity.py
-│   │   ├── performance.py
-│   │   └── memory.py
-│   ├── metrics.py
-│   └── report.py
-├── board/
-│   ├── rknn_eval_agent.py           # Toolkit Lite 板端常驻进程
-│   └── runtime_probe/                # 可选 C++ profile/内存工具
+│   ├── data/                         # 数据源、分词、schema、GGUF 校验
+│   ├── board/                        # Python 原型与数值函数
+│   └── cpp/
+│       ├── main.cc                   # 正式 C++ PPL/性能/内存 runner
+│       ├── CMakeLists.txt
+│       └── build-linux.sh
 ├── schemas/
-│   ├── request.schema.json
-│   └── result.schema.json
-└── results/<experiment_id>/
-    ├── manifest.json
-    ├── predictions.jsonl
-    ├── metrics.json
-    ├── profile_ops.txt
-    ├── profile_mem.txt
-    └── report.md
+│   ├── rknn_eval_record.schema.json
+│   └── rknn_eval_result.schema.json
+└── data/rknn/<tokenizer-family>/
+    ├── *.jsonl
+    └── *.manifest.json
 ```
 
-## 4. 板端 Agent
+## 4. 板端 Runner
 
 ### 4.1 生命周期
 
-板端 Agent 启动后只加载一次模型：
+板端 C++ runner 启动后只加载一次模型：
 
-1. `RKNN3Lite(llm_mode=True)`；
-2. `load_rknn(model_path, weight_path)`；
-3. 查询模型 LLM 配置，获取 `vocab_size`、`embedding_dim`、最大上下文等，不在配置中硬编码；
-4. 加载 tokenizer 和可选 `embed.bin`；
-5. 注册 tokenizer、embedding、output、sampling、result 回调；
-6. `init_runtime(target, core_mask, llm_args, llm_callback)`；
-7. 创建/复用 Session 执行请求；
-8. 测试批次完成后释放 Session 和 Runtime。
+1. `rknn3_init` 并加载 `.rknn`/`.weight`；
+2. `rknn3_model_init`，查询 LLM 配置、设备核数和设备内存；
+3. 加载 `tokenizer.gguf` 和可选 `embed.bin`，校验词表与 embedding 大小；
+4. 初始化 Session，注册 embedding、sampling 和 result callback；
+5. 每条独立记录前清空 KVCache，执行 teacher forcing；
+6. 按记录写 JSONL，并在结束时写入包含性能、内存、上下文的 summary；
+7. 测试批次完成后释放 Session、模型和 Runtime。
 
 `core_mask` 必须与模型构建时使用的 NPU 核数匹配：RK1820/RK1828 可用 `0x1~0xff`，RK3572 仅使用 `0x1`。
 
-### 4.2 请求协议
+### 4.2 输入与输出协议
 
-第一版使用一行一条 JSON 的 stdin/stdout 协议，便于通过 SSH 管道运行，也避免引入 Web 服务依赖：
+输入是数据准备阶段生成的一行一条 JSON 记录，当前 PPL 记录为：
 
 ```json
-{"id":"sample-1","op":"generate","prompt":"...","generation":{"max_new_tokens":128,"top_k":1,"temperature":1.0}}
-{"id":"sample-2","op":"score","tokens":[151644,872,198,...]}
-{"id":"profile-1","op":"benchmark","prompt_tokens":128,"new_tokens":128,"repeat":10}
+{"schema_version":1,"id":"sample-1","type":"perplexity","task":"wikitext2","tokens":[...],"score_from":1}
 ```
 
-响应：
+每条评分结果：
 
 ```json
 {
   "id": "sample-1",
-  "ok": true,
-  "output_text": "...",
-  "output_tokens": [123, 456],
-  "timing": {
-    "prefill_tokens": 32,
-    "decode_tokens": 128,
-    "ttft_ms": 81.2,
-    "prefill_ms": 70.4,
-    "decode_ms": 1430.7
-  }
+  "schema_version": 1,
+  "id": "sample-1",
+  "nll_sum": 123.0,
+  "scored_tokens": 1023,
+  "mean_nll": 0.0,
+  "perplexity": 0.0,
+  "performance": {"ttft_seconds": 0.0, "eval_tokens_per_second": 0.0}
 }
 ```
 
-日志必须写入 stderr，stdout 只允许输出协议 JSON，防止破坏结果解析。
+stdout 的状态事件也是 JSON；Runtime/Tokenizer 原生日志可能写入 stdout/stderr，正式结果以
+`--output` JSONL 和 `<output>.summary.json` 为准。
 
 ### 4.3 Session 隔离
 
@@ -327,44 +311,51 @@ evaluation:
 
 ## 8. 执行入口
 
-建议 Host 使用统一命令：
+Host 准备数据：
 
 ```bash
-python run_rknn_eval.py preflight --config configs/rknn/qwen2_5_0_5b_rk1820.yaml
-python run_rknn_eval.py smoke     --config configs/rknn/qwen2_5_0_5b_rk1820.yaml
-python run_rknn_eval.py accuracy  --config configs/rknn/qwen2_5_0_5b_rk1820.yaml
-python run_rknn_eval.py benchmark --config configs/rknn/qwen2_5_0_5b_rk1820.yaml
-python run_rknn_eval.py all       --config configs/rknn/qwen2_5_0_5b_rk1820.yaml
+conda activate rknn_quant_bench_env
+python prepare_rknn_data.py prepare --config configs/rknn/wikitext2_qwen35_4b_ppl.yaml
+python prepare_rknn_data.py prepare --config configs/rknn/c4_qwen35_4b_ppl.yaml
 ```
 
-`all` 的固定顺序为：preflight -> smoke -> accuracy -> benchmark -> memory -> report。任一硬门禁失败即停止，避免在错误模型或错误核心配置上浪费长时间评测。
+构建使用 RK1828 SDK 中的 GCC 6.3.1 交叉工具链：
+
+```bash
+export RK1828_TOOLCHAIN_ROOT=/home/ilearn-xyf/sdk/rk1828/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu
+./rknn_eval/cpp/build-linux.sh
+```
+
+程序和数据通过 ADB 部署。板端 PPL 运行、性能-only 运行及参数示例见项目 README。
+正式执行顺序为：单条冒烟 -> 性能预热/重复 -> WikiText-2 全量 -> C4 固定样本。
+任一硬门禁失败即停止，避免在错误产物或核心配置上浪费长时间评测。
 
 ## 9. 实施阶段
 
 ### 阶段一：板端闭环
 
-- 支持单个纯文本 LLM；
-- Toolkit Lite 加载、greedy 生成、JSONL 协议；
-- 冒烟、生成任务、TTFT/Prefill/Decode 性能；
-- `manifest.json`、`predictions.jsonl`、`metrics.json`。
+- 已支持通用纯文本 decoder-only RKNN3 LLM；
+- 已实现预分词 JSONL、manifest、GGUF tokenizer 指纹校验；
+- 已实现精确 teacher-forcing PPL、断点续跑和结构化结果；
+- 已实现 TTFT、Prefill/Decode、设备 allocation、进程 RSS 和上下文查询；
+- 已在 Qwen3.5-4B official/Q2N 两个产物上通过板端单条链路验收。
 
-验收标准：同一 greedy 请求重复结果一致；100 条样本连续执行无 Session 状态串扰和明显内存增长。
+下一验收标准：完成 WikiText-2/C4 全量，并以预热加重复实验形成正式对比表。
 
 ### 阶段二：标准评测
 
-- 接入 `lm-evaluation-harness` 自定义 RKNN backend；
-- 实现 logits/output callback 和候选项打分；
-- 实现 Wikitext2 PPL；
-- 完善异常重试、断点续跑和样本级错误记录。
+- 增加多个 prompt 长度的性能矩阵、温度/频率采集；
+- 增加候选项条件似然打分，再接入 CEval/MMLU/ARC；
+- 完善异常重试、失败样本隔离和自动报告；
+- 视需求接入 `lm-evaluation-harness` 自定义 backend。
 
 验收标准：短序列 teacher-forcing 单元测试通过；PPL 可重复；生成模式与 loglikelihood 模式在报告中严格区分。
 
 ### 阶段三：硬件剖析与扩展
 
-- Runtime C++ probe；
-- 算子 profile、NPU/进程内存、频率和温度采集；
-- 多 Session/并发吞吐测试；
-- 再按需求扩展 MLLM。MLLM 需要分别加载 vision/audio 与 LLM 模型，并将编码器 embedding 作为 Session 多模态输入，不能直接复用纯文本输入适配器。
+- 算子 profile 和多 Session/并发吞吐测试；
+- 为需要额外输入回调的文本模型增加专用 adapter；
+- 再按需求扩展 MLLM。MLLM 不能直接复用纯文本输入适配器。
 
 ## 10. 风险与约束
 
@@ -377,12 +368,13 @@ python run_rknn_eval.py all       --config configs/rknn/qwen2_5_0_5b_rk1820.yaml
 
 ## 11. 推荐的最小落地范围
 
-第一版先完成：
+当前版本的最小正式发布范围：
 
-- 目标平台选一种（RK182X 或 RK3572）；
-- 一个已验证的纯文本 LLM RKNN 模型；
-- Toolkit Lite Board Agent；
-- `smoke + greedy accuracy + TTFT/Decode TPS + memory`；
-- Host 侧 JSONL 数据集和统一 JSON 报告。
+- 目标平台固定为 RK3588 + RK1828，核心掩码 `0xff`；
+- Qwen3.5-4B official 和 Q2N-W4A16-G32 两个对比模型；
+- WikiText-2 全量 PPL 与 C4 固定 256×1024 token 样本；
+- 128/512/1024 Prefill × 128 Decode 的预热、重复、p50/p90；
+- RK1828 allocation、RK3588 RSS、导出模型/KV/Session 上下文；
+- 保存原始 JSONL、summary、数据 manifest 和运行命令。
 
-PPL、完整 `lm-evaluation-harness` 和 C++ profile 放到第二阶段。这样能够先形成稳定的板端评估闭环，同时保留后续严格 loglikelihood 评测所需的协议和扩展点。
+生成类任务、候选项 loglikelihood、完整 `lm-evaluation-harness` 和多模态适配放到后续阶段。

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ptq-bench.local/schemas/rknn_eval_result.schema.json",
+  "title": "RKNN3 board perplexity result",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "id",
+    "task",
+    "model",
+    "adapter",
+    "nll_sum",
+    "scored_tokens",
+    "mean_nll",
+    "perplexity",
+    "performance"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "id": {"type": "string", "minLength": 1},
+    "task": {"type": "string", "minLength": 1},
+    "model": {"type": "string", "minLength": 1},
+    "adapter": {"type": "string", "minLength": 1},
+    "nll_sum": {"type": "number"},
+    "scored_tokens": {"type": "integer", "minimum": 1},
+    "mean_nll": {"type": "number"},
+    "perplexity": {"type": "number", "exclusiveMinimum": 0},
+    "performance": {
+      "type": "object",
+      "required": [
+        "elapsed_seconds",
+        "ttft_seconds",
+        "prefill_tokens_per_second",
+        "decode_tokens_per_second",
+        "model_decode_tokens_per_second_estimate",
+        "eval_tokens_per_second",
+        "nll_compute_seconds",
+        "session_n_max_tokens"
+      ],
+      "properties": {
+        "elapsed_seconds": {"type": "number", "minimum": 0},
+        "ttft_seconds": {"type": "number", "minimum": 0},
+        "prefill_tokens_per_second": {"type": "number", "minimum": 0},
+        "decode_tokens_per_second": {"type": "number", "minimum": 0},
+        "model_decode_tokens_per_second_estimate": {"type": "number", "minimum": 0},
+        "eval_tokens_per_second": {"type": "number", "minimum": 0},
+        "nll_compute_seconds": {"type": "number", "minimum": 0},
+        "session_n_max_tokens": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}
