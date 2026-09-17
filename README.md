@@ -285,15 +285,19 @@ adb shell 'cd /userdata/ptq-bench-rknn; \
 - `model_config.max_ctx_len`、`attention_kvcache_lengths` 和
   `session_n_max_tokens_after_run`：导出模型、KV cache 与实跑 Session 的上下文上限。
 
-当前单样本链路验收结果如下：
+2026-09-16 完成的 WikiText-2 正式评估结果如下。PPL 覆盖 145 个完整的
+2048-token 块，共计 296,815 个预测 token；性能数据采用 1024-token Prefill、
+128-token Decode、预热 3 次、正式重复 10 次的 p50。
 
-| 模型 | PPL（1 条） | Prefill 512 | 模型 Decode 估计 | RK1828 分配 | 上下文上限 |
+| 模型 | WikiText-2 PPL | Prefill 1024 | 模型 Decode 估计 | RK1828 分配 | 已验证上下文 |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Qwen3.5-4B-rknn-official | 6.94070 | 743.94 tok/s | 41.48 tok/s | 3.027 GB | 4096 |
-| Qwen3.5-4B-Q2N-W4A16-G32 | 6.96426 | 640.79 tok/s | 40.74 tok/s | 3.027 GB | 4096 |
+| Qwen3.5-4B-rknn-official | 9.891674 | 752.46 tok/s | 41.42 tok/s | 3.027 GB | 4096 |
+| Qwen3.5-4B-Q2N-W4A16-G32 | **9.607599** | 752.27 tok/s | 41.28 tok/s | 3.027 GB | 4096 |
 
-这些数值只验证评分、性能、内存和上下文采集链路，不代表最终模型优劣。正式结论
-必须跑完整 WikiText-2/C4，并对性能执行预热和多次重复。
+Q2N 的板端 PPL 相比 RKNN Official 降低约 2.87%，两者吞吐与运行时分配基本
+一致。4096 是本轮实际验证的上下文长度，不代表经过边界扫描得到的最大值。
+测试口径、NLL、TTFT、内存分项及结果分析见
+[`docs/RKNN_QWEN35_4B_WIKITEXT2_RESULTS.md`](docs/RKNN_QWEN35_4B_WIKITEXT2_RESULTS.md)。
 
 ### 扩展到其他模型
 
